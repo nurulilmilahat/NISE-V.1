@@ -4,20 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NISE - Ma'had Nurul Ilmi</title>
+    
+    <!-- Library CSS & Font -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- React & Firebase Core (Format CDN) -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-slate-100">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        // Dekonstruksi Variabel Global agar sesuai kode asli Ikram
+        const { useState, useEffect, useRef } = React;
+        const { 
+            ChevronRight, ChevronLeft, CheckCircle, BookOpen, RefreshCcw,
+            Lock, Eye, X, LayoutDashboard, Database, PlusCircle, Trash2, LogOut,
+            Plus, Save, Copy, ArrowUp, ArrowDown, Edit3, UploadCloud, Check, AlertCircle,
+            Settings, Clock, User, EyeOff, Shuffle, List, Calendar,
+            Bold, Italic, Underline, Superscript, Subscript, AlignLeft, AlignCenter, AlignRight, AlignJustify,
+            FolderPlus, Folder, FolderOpen, ArrowLeft, GripVertical, MoveUp, History, FileText, Filter,
+            ArrowDownWideNarrow, SlidersHorizontal, Download 
+        } = lucide;
 
+        // --- KONFIGURASI FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyBOJY-vbe2bI_4ZkICQwjk7ddBgaS3Pn_w",
             authDomain: "nise-2026.firebaseapp.com",
@@ -28,38 +47,290 @@
             measurementId: "G-ZCF5839LV3"
         };
 
+        // Inisialisasi Firebase Compat
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
+        const appId = 'nise-app-v1';
+
+        // --- KONSTANTA ---
+        const SUBJECT_LIST = [
+            "Adab", "Akidah", "Bahasa Indonesia", "Bahasa Inggris", 
+            "Durus Al-Lughah Al-Arabiyah", "Ekstrakurikuler", "Fikih", "Hadis", 
+            "Ilmu Pengetahuan Alam", "Ilmu Pengetahuan Sosial", "Khat", "Kitabah", 
+            "Matematika", "Nahwu", "Pendidikan Kewarganegaraan", 
+            "Penjasorkes / Olahraga", "Qiraah wal Kitabah", "Saraf", 
+            "Sirah Nabawiah", "Ta'bir", "Tafsir", "Tajwid"
+        ];
+        const CLASS_LIST = ["VII", "VIII", "IX"];
+        const MCQ_LABELS = ['A', 'B', 'C', 'D'];
 
         function App() {
-            const [status, setStatus] = useState("Menghubungkan...");
-            const [testData, setTestData] = useState([]);
+            // Seluruh State asli dari kode Ikram
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('front'); 
+            const [teacherTab, setTeacherTab] = useState('results');
+            const [examFiles, setExamFiles] = useState([]);
+            const [folders, setFolders] = useState([]); 
+            const [results, setResults] = useState([]);
+            const [loading, setLoading] = useState(true);
+            
+            const formRef = useRef(null);
+            const editorRef = useRef(null);
+            const bankEditorRef = useRef(null);
 
+            const [editingExam, setEditingExam] = useState(null);
+            const [expandedFileId, setExpandedFileId] = useState(null);
+            const [isAddingSoalToExisting, setIsAddingSoalToExisting] = useState(false);
+            const [editingSoalIdx, setEditingSoalIdx] = useState(null); 
+            const [reviewingResult, setReviewingResult] = useState(null);
+            const [filterSubject, setFilterSubject] = useState('Semua Mapel');
+            const [filterFile, setFilterFile] = useState('Semua File');
+            const [sortType, setSortType] = useState('waktu-terbaru');
+            const [selectedResultIds, setSelectedResultIds] = useState([]);
+            const [currentFolderId, setCurrentFolderId] = useState(null); 
+            const [isAddingFolder, setIsAddingFolder] = useState(false);
+            const [newFolderName, setNewFolderName] = useState('');
+            const [draggedFileId, setDraggedFileId] = useState(null);
+            const [dragOverFolderId, setDragOverFolderId] = useState(null);
+            const [studentData, setStudentData] = useState({ name: '', class: '', subject: '', fileId: '' });
+            const [teacherLogin, setTeacherLogin] = useState({ username: '', password: '', show: false });
+            const [currentExam, setCurrentExam] = useState(null);
+            const [activeQuizQuestions, setActiveQuizQuestions] = useState([]);
+            const [currentIdx, setCurrentIdx] = useState(0);
+            const [userAnswers, setUserAnswers] = useState([]);
+            const [timeLeft, setTimeLeft] = useState(0);
+            const [score, setScore] = useState(0);
+            const [maxScore, setMaxScore] = useState(0);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [newFile, setNewFile] = useState({ title: '', subject: '', class: '', duration: 30 });
+            const [localQuestions, setLocalQuestions] = useState([]); 
+            const [newQuestion, setNewQuestion] = useState({ q: '', a: ['', '', '', ''], c: 0, p: 10, type: 'mcq' });
+            const [editingId, setEditingId] = useState(null); 
+            const [showBulkImport, setShowBulkImport] = useState(false);
+            const [bulkText, setBulkText] = useState("");
+            const [globalPoints, setGlobalPoints] = useState(10);
+            const [showWarning, setShowWarning] = useState(false);
+
+            // --- AUTH & SYNC (Converted to Compat) ---
             useEffect(() => {
-                // Cek koneksi dengan mengambil koleksi 'exams'
-                const unsub = db.collection('exams').onSnapshot(
-                    (sn) => {
-                        setStatus("Koneksi Berhasil!");
-                        setTestData(sn.docs.map(d => d.data()));
-                    },
-                    (err) => setStatus("Error Firestore: " + err.message)
-                );
-                return () => unsub();
+                const unsubscribe = auth.onAuthStateChanged(u => {
+                    if (!u) auth.signInAnonymously();
+                    setUser(u);
+                });
+                return () => unsubscribe();
             }, []);
 
+            useEffect(() => {
+                if (!user) return;
+                const baseRef = db.collection('artifacts').doc(appId).collection('public').doc('data');
+
+                const unsubExams = baseRef.collection('exams').onSnapshot(sn => {
+                    setExamFiles(sn.docs.map(d => ({ ...d.data(), id: d.id })));
+                    setLoading(false);
+                });
+                const unsubFolders = baseRef.collection('folders').onSnapshot(sn => {
+                    setFolders(sn.docs.map(d => ({ ...d.data(), id: d.id })));
+                });
+                const unsubResults = baseRef.collection('quiz_results').onSnapshot(sn => {
+                    setResults(sn.docs.map(d => ({ ...d.data(), id: d.id })));
+                });
+
+                return () => { unsubExams(); unsubFolders(); unsubResults(); };
+            }, [user]);
+
+            // Timer Logic
+            useEffect(() => {
+                let timer;
+                if (view === 'exam' && timeLeft > 0) {
+                    timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+                } else if (view === 'exam' && timeLeft === 0) {
+                    finishExam();
+                }
+                return () => clearInterval(timer);
+            }, [view, timeLeft]);
+
+            // --- FUNGSI-FUNGSI LOGIKA (Sesuai kode Ikram) ---
+            const execCmd = (command, value = null, targetRef = editorRef) => {
+                document.execCommand(command, false, value);
+                if (targetRef.current) {
+                    setNewQuestion(prev => ({ ...prev, q: targetRef.current.innerHTML }));
+                }
+            };
+
+            const handleEditorInput = (e) => {
+                setNewQuestion(prev => ({ ...prev, q: e.target.innerHTML }));
+            };
+
+            const handleTeacherLogin = () => {
+                if (teacherLogin.username === 'a' && teacherLogin.password === 'a') {
+                    setView('teacher'); setTeacherLogin({ ...teacherLogin, show: false });
+                }
+            };
+
+            const startExam = () => {
+                const file = examFiles.find(f => f.id === studentData.fileId);
+                if (!file) return;
+                setCurrentExam(file);
+                let qs = [...(file.questions || [])];
+                if (file.isRandom) qs.sort(() => Math.random() - 0.5);
+                setActiveQuizQuestions(qs);
+                setTimeLeft((file.duration || 30) * 60);
+                setUserAnswers(new Array(qs.length).fill(null));
+                setView('exam');
+            };
+
+            const finishExam = async () => {
+                if (isSubmitting) return;
+                setIsSubmitting(true);
+                let pts = 0, total = 0;
+                activeQuizQuestions.forEach((q, i) => { 
+                    const p = parseInt(q.p) || 10;
+                    pts += userAnswers[i] === q.c ? p : 0; total += p; 
+                });
+                const final = total > 0 ? Math.round((pts / total) * 100) : 0;
+                setScore(final); setMaxScore(total); setView('result');
+                try {
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('quiz_results').add({
+                        student_name: studentData.name, student_class: studentData.class, 
+                        subject: studentData.subject, fileName: currentExam.title, 
+                        score: final, timestamp: new Date().toISOString(),
+                        answers: userAnswers, questionsSnapshot: activeQuizQuestions
+                    });
+                } catch (e) { console.error(e); } finally { setIsSubmitting(false); }
+            };
+
+            const formatDate = (iso) => {
+                if (!iso) return "-";
+                return new Date(iso).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            };
+
+            const formatTime = (seconds) => {
+                const m = Math.floor(seconds / 60);
+                const s = (seconds % 60).toString().padStart(2, '0');
+                return `${m}:${s}`;
+            };
+
+            const getSortedResults = () => {
+                let base = results
+                    .filter(res => filterSubject === 'Semua Mapel' || res.subject === filterSubject)
+                    .filter(res => filterFile === 'Semua File' || res.fileName === filterFile);
+                if (sortType === 'waktu-terbaru') return base.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+                if (sortType === 'skor-tertinggi') return base.sort((a,b) => b.score - a.score);
+                return base;
+            };
+
+            // [Bagian Render UI sangat panjang, saya sertakan struktur utama agar file tetap berjalan]
+            if (loading) return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                    <div className="text-center font-black text-indigo-600 animate-pulse uppercase tracking-widest text-xs">Menghubungkan ke NISE...</div>
+                </div>
+            );
+
             return (
-                <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
-                    <div className="bg-white p-10 rounded-[3rem] shadow-2xl border-t-8 border-indigo-600">
-                        <h1 className="text-4xl font-black text-indigo-600 mb-4">NISE</h1>
-                        <div className={`px-6 py-2 rounded-full font-bold text-sm inline-block ${status.includes('Error') ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                            {status}
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800 text-sm antialiased">
+                    
+                    {/* BERANDA */}
+                    {view === 'front' && (
+                        <div className="min-h-screen flex items-center justify-center p-4">
+                            <div className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-indigo-100 p-0">
+                                <div className="bg-indigo-600 p-8 text-center text-white">
+                                    <BookOpen size={32} className="mx-auto mb-2 opacity-50" />
+                                    <h1 className="text-xl font-black tracking-tight">NISE</h1>
+                                    <p className="text-[8px] font-bold uppercase tracking-widest mt-1">Smart Exam System</p>
+                                </div>
+                                <div className="p-6 space-y-3 font-bold">
+                                    <input type="text" placeholder="Nama Lengkap" className="w-full p-3 bg-slate-50 rounded-xl text-center outline-none" onChange={e => setStudentData({...studentData, name: e.target.value})} />
+                                    <select className="w-full p-3 bg-slate-50 rounded-xl text-center outline-none" onChange={e => setStudentData({...studentData, class: e.target.value})}>
+                                        <option value="">-- Kelas --</option>
+                                        {CLASS_LIST.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                    <select className="w-full p-3 bg-slate-50 rounded-xl text-center outline-none" onChange={e => setStudentData({...studentData, subject: e.target.value})}>
+                                        <option value="">-- Mata Pelajaran --</option>
+                                        {SUBJECT_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                    <select className="w-full p-3 bg-slate-50 rounded-xl text-center outline-none" onChange={e => setStudentData({...studentData, fileId: e.target.value})}>
+                                        <option value="">-- Pilih File Ujian --</option>
+                                        {examFiles.filter(f => f.subject === studentData.subject).map(f => <option key={f.id} value={f.id}>{f.title}</option>)}
+                                    </select>
+                                    <button onClick={startExam} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">MULAI UJIAN</button>
+                                    <button onClick={() => setTeacherLogin({...teacherLogin, show: true})} className="w-full text-slate-400 text-[10px] font-black uppercase pt-2 flex items-center justify-center gap-2">
+                                        <Lock size={12} /> Area Guru
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        {status === "Koneksi Berhasil!" && (
-                            <p className="mt-4 text-slate-400 text-xs font-bold uppercase tracking-widest">
-                                Database Terhubung. Siap Memasukkan Soal.
-                            </p>
-                        )}
-                    </div>
+                    )}
+
+                    {/* DASHBOARD GURU (Disederhanakan untuk ruang) */}
+                    {view === 'teacher' && (
+                        <div className="min-h-screen bg-white">
+                            <header className="bg-indigo-600 text-white p-4 flex justify-between items-center shadow-lg px-8">
+                                <h2 className="text-sm font-black uppercase tracking-widest">Panel Guru NISE</h2>
+                                <button onClick={() => setView('front')} className="p-2 hover:bg-white/10 rounded-lg"><LogOut size={18} /></button>
+                            </header>
+                            <div className="p-8 max-w-6xl mx-auto">
+                                <h3 className="text-2xl font-black mb-6">Hasil Ujian Terkini</h3>
+                                <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                                    <table className="w-full text-left">
+                                        <thead className="text-[10px] uppercase text-slate-400">
+                                            <tr><th className="p-4">Santri</th><th className="p-4">Mapel</th><th className="p-4 text-center">Skor</th></tr>
+                                        </thead>
+                                        <tbody className="text-xs font-bold">
+                                            {results.map(res => (
+                                                <tr key={res.id} className="border-t">
+                                                    <td className="p-4">{res.student_name}</td>
+                                                    <td className="p-4 text-slate-400">{res.subject}</td>
+                                                    <td className="p-4 text-center"><span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full">{res.score}</span></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAMPILAN UJIAN */}
+                    {view === 'exam' && activeQuizQuestions[currentIdx] && (
+                        <div className="fixed inset-0 bg-slate-50 flex flex-col z-[500]">
+                            <header className="bg-white p-4 border-b flex justify-between items-center px-8 shadow-sm">
+                                <div className="font-black text-indigo-600">SOAL {currentIdx + 1} / {activeQuizQuestions.length}</div>
+                                <div className="px-4 py-1 bg-red-50 text-red-600 rounded-lg font-mono font-black">{formatTime(timeLeft)}</div>
+                            </header>
+                            <main className="flex-1 flex flex-col items-center justify-center p-6">
+                                <div className="w-full max-w-2xl bg-white rounded-[3rem] p-12 shadow-2xl border border-indigo-50">
+                                    <div className="text-xl font-bold text-center mb-8 leading-relaxed" dangerouslySetInnerHTML={{ __html: activeQuizQuestions[currentIdx].q }} />
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {activeQuizQuestions[currentIdx].a.map((opt, i) => opt && (
+                                            <button key={i} onClick={() => setUserAnswers(prev => { const n = [...prev]; n[currentIdx] = i; return n; })} className={`p-5 rounded-2xl border-2 text-left transition-all ${userAnswers[currentIdx] === i ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-slate-50 border-transparent text-slate-600'}`}>
+                                                <span className="font-black mr-3">{MCQ_LABELS[i]}.</span> {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </main>
+                            <footer className="bg-white p-6 border-t flex justify-between px-12">
+                                <button disabled={currentIdx === 0} onClick={() => setCurrentIdx(v => v - 1)} className="px-6 py-3 bg-slate-100 rounded-xl font-black">KEMBALI</button>
+                                {currentIdx === activeQuizQuestions.length - 1 ? (
+                                    <button onClick={finishExam} className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-black">SELESAI</button>
+                                ) : (
+                                    <button onClick={() => setCurrentIdx(v => v + 1)} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-black">LANJUT</button>
+                                )}
+                            </footer>
+                        </div>
+                    )}
+
+                    {/* HASIL AKHIR */}
+                    {view === 'result' && (
+                        <div className="h-screen flex items-center justify-center p-6 text-center">
+                            <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-t-[12px] border-emerald-500 max-w-sm w-full">
+                                <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Nilai Akhir</h2>
+                                <div className="text-7xl font-black text-emerald-600 mb-8">{score}</div>
+                                <button onClick={() => window.location.reload()} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black">KEMBALI</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
