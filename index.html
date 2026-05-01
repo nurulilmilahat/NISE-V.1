@@ -3,35 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NISE - Ma'had Nurul Ilmi</title>
-    
-    <!-- Library CSS & Font -->
+    <title>NISE - Smart Exam System</title>
+    <!-- Library Pendukung -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- React & Firebase Core -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
-        .animate-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .animate-in { animation: zoomIn 0.2s ease-out; }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
-        const { BookOpen, Lock, LogOut, Database, PlusCircle, Trash2, Settings, ChevronRight, Save, X } = lucide;
+        const { useState, useEffect, useRef } = React;
+        const { BookOpen, Lock, LogOut, Database, PlusCircle, Trash2, Settings, ChevronRight } = lucide;
 
-        // Konfigurasi Firebase Anda
+        // --- KONFIGURASI FIREBASE IKRAM ---
         const firebaseConfig = {
             apiKey: "AIzaSyBOJY-vbe2bI_4ZkICQwjk7ddBgaS3Pn_w",
             authDomain: "nise-2026.firebaseapp.com",
@@ -44,86 +41,74 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
         function App() {
-            const [view, setView] = useState('front'); 
+            const [view, setView] = useState('front');
             const [loading, setLoading] = useState(true);
             const [exams, setExams] = useState([]);
-            const [student, setStudent] = useState({ name: '', class: '', subjectId: '' });
-            const [auth, setAuth] = useState({ show: false, user: '', pass: '' });
+            const [student, setStudent] = useState({ name: '', class: '', subject: '', fileId: '' });
+            const [teacherAuth, setTeacherAuth] = useState({ user: '', pass: '', show: false });
 
-            // Sync Data
             useEffect(() => {
+                // Langsung hubungkan ke koleksi 'exams'
                 const unsub = db.collection('exams').onSnapshot(sn => {
                     setExams(sn.docs.map(d => ({ id: d.id, ...d.data() })));
                     setLoading(false);
-                }, () => setLoading(false));
+                }, err => {
+                    console.error(err);
+                    setLoading(false);
+                });
                 return () => unsub();
             }, []);
 
-            const handleLogin = () => {
-                if(auth.user === 'a' && auth.pass === 'a') {
-                    setView('teacher');
-                    setAuth({ ...auth, show: false });
-                } else {
-                    alert("Kredensial Salah");
-                }
-            };
-
             if (loading) return (
-                <div className="h-screen flex items-center justify-center bg-white">
+                <div className="h-screen flex items-center justify-center">
                     <div className="text-center">
-                        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="text-xs font-black text-indigo-600 tracking-[0.3em] uppercase">NISE LOADING...</p>
+                        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="font-bold text-indigo-600 text-xs tracking-widest">MENGHUBUNGKAN KE NISE...</p>
                     </div>
                 </div>
             );
 
             return (
                 <div className="min-h-screen">
-                    {/* TAMPILAN UTAMA SANTRI */}
+                    {/* TAMPILAN DEPAN SANTRI */}
                     {view === 'front' && (
                         <div className="h-screen flex items-center justify-center p-4">
-                            <div className="w-full max-w-sm bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-in">
-                                <div className="bg-indigo-600 p-10 text-center text-white">
-                                    <BookOpen size={40} className="mx-auto mb-4 opacity-50" />
-                                    <h1 className="text-3xl font-black">NISE</h1>
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Ma'had Nurul Ilmi</p>
+                            <div className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl border border-indigo-50 animate-in overflow-hidden">
+                                <div className="bg-indigo-600 p-8 text-center text-white">
+                                    <BookOpen size={32} className="mx-auto mb-2 opacity-50" />
+                                    <h1 className="text-2xl font-black">NISE</h1>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Ma'had Nurul Ilmi</p>
                                 </div>
-                                <div className="p-8 space-y-4">
-                                    <input type="text" placeholder="Nama Lengkap" className="w-full p-4 bg-slate-50 rounded-2xl outline-none border-2 border-transparent focus:border-indigo-500 font-bold transition-all" onChange={e => setStudent({...student, name: e.target.value})} />
-                                    <select className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold" onChange={e => setStudent({...student, class: e.target.value})}>
+                                <div className="p-6 space-y-3 font-bold">
+                                    <input type="text" placeholder="Nama Lengkap" className="w-full p-3 bg-slate-50 rounded-xl outline-none border-2 border-transparent focus:border-indigo-500 transition-all" value={student.name} onChange={e => setStudent({...student, name: e.target.value})} />
+                                    <select className="w-full p-3 bg-slate-50 rounded-xl outline-none" value={student.class} onChange={e => setStudent({...student, class: e.target.value})}>
                                         <option value="">-- Pilih Kelas --</option>
                                         <option value="VII">Kelas VII</option>
                                         <option value="VIII">Kelas VIII</option>
                                         <option value="IX">Kelas IX</option>
                                     </select>
-                                    <select className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold" onChange={e => setStudent({...student, subjectId: e.target.value})}>
-                                        <option value="">-- Pilih Ujian --</option>
-                                        {exams.map(ex => <option key={ex.id} value={ex.id}>{ex.title}</option>)}
-                                    </select>
-                                    <button className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all text-sm uppercase tracking-widest">Mulai Ujian</button>
-                                    <button onClick={() => setAuth({...auth, show: true})} className="w-full text-slate-300 text-[10px] font-black uppercase tracking-widest pt-4 flex items-center justify-center gap-2">
-                                        <Lock size={12} /> Area Guru
+                                    <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg hover:bg-indigo-700 active:scale-95 transition-all mt-2">MULAI UJIAN</button>
+                                    <button onClick={() => setTeacherAuth({...teacherAuth, show: true})} className="w-full text-slate-300 text-[9px] uppercase font-black tracking-widest pt-4 flex items-center justify-center gap-2">
+                                        <Lock size={10} /> Area Guru
                                     </button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* MODAL LOGIN GURU */}
-                    {auth.show && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
-                            <div className="bg-white w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl animate-in text-center">
-                                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                    <Lock size={20} />
-                                </div>
-                                <h3 className="font-black text-slate-800 mb-6 uppercase text-xs tracking-widest">Verifikasi Guru</h3>
-                                <input type="text" placeholder="Username" className="w-full p-3 bg-slate-50 rounded-xl mb-2 outline-none border text-center font-bold" onChange={e => setAuth({...auth, user: e.target.value})} />
-                                <input type="password" placeholder="Password" className="w-full p-3 bg-slate-50 rounded-xl mb-6 outline-none border text-center font-bold" onChange={e => setAuth({...auth, pass: e.target.value})} />
-                                <div className="flex gap-2">
-                                    <button onClick={handleLogin} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs">MASUK</button>
-                                    <button onClick={() => setAuth({...auth, show: false})} className="flex-1 py-3 bg-slate-100 text-slate-400 rounded-xl font-bold text-xs">BATAL</button>
+                    {/* LOGIN GURU */}
+                    {teacherAuth.show && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white w-full max-w-xs rounded-[2rem] p-6 shadow-2xl text-center animate-in">
+                                <h3 className="font-black text-slate-800 mb-4 uppercase text-sm">Akses Guru</h3>
+                                <input type="text" placeholder="User" className="w-full p-3 bg-slate-50 rounded-xl mb-2 outline-none border" onChange={e => setTeacherAuth({...teacherAuth, user: e.target.value})} />
+                                <input type="password" placeholder="Pass" className="w-full p-3 bg-slate-50 rounded-xl mb-4 outline-none border" onChange={e => setTeacherAuth({...teacherAuth, pass: e.target.value})} />
+                                <div className="flex gap-2 font-bold">
+                                    <button onClick={() => {if(teacherAuth.user === 'a' && teacherAuth.pass === 'a') setView('teacher'); setTeacherAuth({...teacherAuth, show: false})}} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-xs">MASUK</button>
+                                    <button onClick={() => setTeacherAuth({...teacherAuth, show: false})} className="flex-1 py-3 bg-slate-100 text-slate-400 rounded-xl text-xs">BATAL</button>
                                 </div>
                             </div>
                         </div>
@@ -131,56 +116,45 @@
 
                     {/* DASHBOARD GURU */}
                     {view === 'teacher' && (
-                        <div className="p-6 max-w-5xl mx-auto animate-in">
-                            <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
-                                <div className="flex justify-between items-center mb-10">
+                        <div className="p-6 max-w-4xl mx-auto animate-in">
+                            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border space-y-6">
+                                <div className="flex justify-between items-center">
                                     <div>
-                                        <h2 className="text-2xl font-black text-slate-800">Panel Admin</h2>
-                                        <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.3em]">Smart Exam Management</p>
+                                        <h2 className="text-xl font-black text-indigo-600 uppercase">Panel Guru</h2>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manajemen Ujian NISE</p>
                                     </div>
-                                    <button onClick={() => setView('front')} className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><LogOut size={20}/></button>
+                                    <button onClick={() => setView('front')} className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><LogOut size={20}/></button>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                                    <div className="p-8 bg-indigo-600 rounded-[2rem] text-white flex items-center justify-between group cursor-pointer hover:shadow-2xl hover:shadow-indigo-200 transition-all">
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 flex items-center justify-between group cursor-pointer hover:bg-indigo-600 transition-all">
                                         <div>
-                                            <Database size={28} className="mb-4 opacity-50" />
-                                            <h4 className="font-black uppercase text-xs tracking-widest">Bank Soal</h4>
-                                            <p className="text-[10px] opacity-70">Kelola database soal ujian</p>
+                                            <Database size={24} className="text-indigo-600 group-hover:text-white mb-2" />
+                                            <h4 className="font-black text-indigo-900 group-hover:text-white uppercase text-xs">Bank Soal</h4>
                                         </div>
-                                        <ChevronRight />
+                                        <ChevronRight className="text-indigo-300 group-hover:text-white" />
                                     </div>
-                                    <div className="p-8 bg-white border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-between group cursor-pointer hover:border-emerald-500 transition-all" onClick={() => {
-                                        const title = prompt("Nama Ujian Baru:");
-                                        if(title) db.collection('exams').add({ title, createdAt: new Date() });
-                                    }}>
+                                    <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 flex items-center justify-between group cursor-pointer hover:bg-emerald-600 transition-all">
                                         <div>
-                                            <PlusCircle size={28} className="mb-4 text-emerald-500" />
-                                            <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Buat Ujian</h4>
-                                            <p className="text-[10px] text-slate-400">Tambah file ujian baru</p>
+                                            <PlusCircle size={24} className="text-emerald-600 group-hover:text-white mb-2" />
+                                            <h4 className="font-black text-emerald-900 group-hover:text-white uppercase text-xs">Buat Ujian Baru</h4>
                                         </div>
-                                        <ChevronRight className="text-slate-200" />
+                                        <ChevronRight className="text-emerald-300 group-hover:text-white" />
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                        <Settings size={14} /> Daftar Ujian Aktif
-                                    </h3>
-                                    <div className="grid gap-3">
+                                <div className="pt-4">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Ujian Aktif</h3>
+                                    <div className="space-y-2">
                                         {exams.length === 0 ? (
-                                            <div className="text-center py-20 bg-slate-50 rounded-[2rem] border border-dashed">
-                                                <p className="text-slate-400 font-bold text-xs uppercase italic">Belum ada ujian. Silakan buat baru.</p>
-                                            </div>
+                                            <p className="text-center py-10 text-slate-300 italic text-xs font-bold">Belum ada file ujian di database.</p>
                                         ) : (
                                             exams.map(ex => (
-                                                <div key={ex.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-transparent hover:border-indigo-200 hover:bg-white transition-all group">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm font-black text-indigo-600 text-xs">{ex.title.substring(0,2).toUpperCase()}</div>
-                                                        <span className="font-bold text-slate-700">{ex.title}</span>
-                                                    </div>
-                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                                        <button onClick={() => db.collection('exams').doc(ex.id).delete()} className="p-2 text-slate-400 hover:text-red-500 bg-white rounded-lg shadow-sm"><Trash2 size={16}/></button>
+                                                <div key={ex.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border hover:border-indigo-300 transition-all">
+                                                    <span className="font-bold text-sm text-slate-700">{ex.title}</span>
+                                                    <div className="flex gap-2">
+                                                        <button className="p-2 text-slate-400 hover:text-indigo-600"><Settings size={16}/></button>
+                                                        <button onClick={() => db.collection('exams').doc(ex.id).delete()} className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
                                                     </div>
                                                 </div>
                                             ))
