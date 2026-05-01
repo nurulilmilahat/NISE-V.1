@@ -3,41 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NISE - Smart Exam System</title>
-
-    <!-- Library Utama -->
+    <title>NISE - Ma'had Nurul Ilmi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Firebase SDK Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .animate-in { animation: zoomIn 0.25s ease-out; }
-        @keyframes zoomIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-        [contenteditable]:empty:before { content: attr(placeholder); color: #94a3b8; }
-        .num-latin { font-family: sans-serif !important; }
-    </style>
 </head>
-<body>
+<body class="bg-slate-100">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { 
-            ChevronRight, ChevronLeft, BookOpen, RefreshCcw, Lock, Eye, X, 
-            LayoutDashboard, Database, PlusCircle, Trash2, LogOut, Plus, 
-            Save, Edit3, Settings, Clock, User, EyeOff, List, AlertCircle 
-        } = lucide;
+        const { useState, useEffect } = React;
 
-        // --- KONFIGURASI FIREBASE ANDA ---
         const firebaseConfig = {
             apiKey: "AIzaSyBOJY-vbe2bI_4ZkICQwjk7ddBgaS3Pn_w",
             authDomain: "nise-2026.firebaseapp.com",
@@ -48,122 +28,38 @@
             measurementId: "G-ZCF5839LV3"
         };
 
-        // Inisialisasi
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const auth = firebase.auth();
-        const appId = 'nise-app-v1';
-
-        const SUBJECT_LIST = ["Adab", "Akidah", "Bahasa Indonesia", "Fikih", "Hadis", "Matematika", "Nahwu", "Saraf", "Tafsir", "Tajwid"];
-        const CLASS_LIST = ["VII", "VIII", "IX"];
 
         function App() {
-            const [user, setUser] = useState(null);
-            const [view, setView] = useState('front');
-            const [loading, setLoading] = useState(true);
-            const [examFiles, setExamFiles] = useState([]);
-            const [studentData, setStudentData] = useState({ name: '', class: '', subject: '', fileId: '' });
-            const [teacherLogin, setTeacherLogin] = useState({ username: '', password: '', show: false });
+            const [status, setStatus] = useState("Menghubungkan...");
+            const [testData, setTestData] = useState([]);
 
-            // Auth & Sync Data
             useEffect(() => {
-                const unsubscribe = auth.onAuthStateChanged((u) => {
-                    if (!u) auth.signInAnonymously();
-                    setUser(u);
-                });
-                return () => unsubscribe();
+                // Cek koneksi dengan mengambil koleksi 'exams'
+                const unsub = db.collection('exams').onSnapshot(
+                    (sn) => {
+                        setStatus("Koneksi Berhasil!");
+                        setTestData(sn.docs.map(d => d.data()));
+                    },
+                    (err) => setStatus("Error Firestore: " + err.message)
+                );
+                return () => unsub();
             }, []);
 
-            useEffect(() => {
-                if (!user) return;
-                const unsub = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('exams')
-                    .onSnapshot((sn) => {
-                        setExamFiles(sn.docs.map(d => ({ ...d.data(), id: d.id })));
-                        setLoading(false);
-                    }, (err) => {
-                        console.error("Firebase Error:", err);
-                        setLoading(false);
-                    });
-                return () => unsub();
-            }, [user]);
-
-            const handleTeacherLogin = () => {
-                if (teacherLogin.username === 'a' && teacherLogin.password === 'a') {
-                    setView('teacher');
-                    setTeacherLogin({ ...teacherLogin, show: false });
-                } else {
-                    alert("Kredensial Salah");
-                }
-            };
-
-            if (loading) return (
-                <div className="h-screen flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="font-bold text-indigo-600 uppercase tracking-widest text-xs">Menghubungkan ke NISE...</p>
-                    </div>
-                </div>
-            );
-
             return (
-                <div className="min-h-screen">
-                    {view === 'front' && (
-                        <div className="h-screen flex items-center justify-center p-4">
-                            <div className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-indigo-50 animate-in">
-                                <div className="bg-indigo-600 p-8 text-center text-white">
-                                    <BookOpen size={32} className="mx-auto mb-2 opacity-50" />
-                                    <h1 className="text-2xl font-black tracking-tight">NISE</h1>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Smart Exam System</p>
-                                </div>
-                                <div className="p-6 space-y-3 font-bold">
-                                    <input type="text" placeholder="Nama Lengkap" className="w-full p-3 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-xl outline-none transition-all" value={studentData.name} onChange={e => setStudentData({...studentData, name: e.target.value})} />
-                                    <select className="w-full p-3 bg-slate-50 rounded-xl outline-none" value={studentData.class} onChange={e => setStudentData({...studentData, class: e.target.value})}>
-                                        <option value="">-- Pilih Kelas --</option>
-                                        {CLASS_LIST.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                    <select className="w-full p-3 bg-slate-50 rounded-xl outline-none" value={studentData.subject} onChange={e => setStudentData({...studentData, subject: e.target.value})}>
-                                        <option value="">-- Pilih Mapel --</option>
-                                        {SUBJECT_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                    <select disabled={!studentData.subject} className="w-full p-3 bg-slate-50 rounded-xl outline-none disabled:opacity-30" value={studentData.fileId} onChange={e => setStudentData({...studentData, fileId: e.target.value})}>
-                                        <option value="">-- Pilih File Ujian --</option>
-                                        {examFiles.filter(f => f.subject === studentData.subject && f.visible !== false).map(f => <option key={f.id} value={f.id}>{f.title}</option>)}
-                                    </select>
-                                    <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg hover:bg-indigo-700 active:scale-95 transition-all mt-2">MULAI UJIAN</button>
-                                    <button onClick={() => setTeacherLogin({...teacherLogin, show: true})} className="w-full text-slate-400 text-[10px] uppercase font-black tracking-widest pt-4 flex items-center justify-center gap-2">
-                                        <Lock size={12} /> Area Guru
-                                    </button>
-                                </div>
-                            </div>
+                <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
+                    <div className="bg-white p-10 rounded-[3rem] shadow-2xl border-t-8 border-indigo-600">
+                        <h1 className="text-4xl font-black text-indigo-600 mb-4">NISE</h1>
+                        <div className={`px-6 py-2 rounded-full font-bold text-sm inline-block ${status.includes('Error') ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {status}
                         </div>
-                    )}
-
-                    {teacherLogin.show && (
-                        <div className="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-white w-full max-w-xs rounded-[2rem] p-6 shadow-2xl text-center">
-                                <h3 className="font-black text-slate-800 mb-4 uppercase tracking-widest">Login Guru</h3>
-                                <input type="text" placeholder="Username" className="w-full p-3 bg-slate-50 rounded-xl mb-2 outline-none border" onChange={e => setTeacherLogin({...teacherLogin, username: e.target.value})} />
-                                <input type="password" placeholder="Password" className="w-full p-3 bg-slate-50 rounded-xl mb-4 outline-none border" onChange={e => setTeacherLogin({...teacherLogin, password: e.target.value})} />
-                                <div className="flex gap-2">
-                                    <button onClick={handleTeacherLogin} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs">Masuk</button>
-                                    <button onClick={() => setTeacherLogin({...teacherLogin, show: false})} className="flex-1 py-3 bg-slate-100 text-slate-400 rounded-xl font-bold text-xs">Batal</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {view === 'teacher' && (
-                        <div className="p-6">
-                            <div className="max-w-4xl mx-auto bg-white rounded-3xl p-8 shadow-sm border">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-black text-indigo-600 uppercase">Panel Guru</h2>
-                                    <button onClick={() => setView('front')} className="p-2 bg-red-50 text-red-500 rounded-xl"><LogOut size={20}/></button>
-                                </div>
-                                <p className="text-slate-400 text-sm">Selamat datang kembali. Silakan kelola ujian dan hasil di sini.</p>
-                                {/* Konten Teacher Tab Bisa Ditambahkan di Sini */}
-                            </div>
-                        </div>
-                    )}
+                        {status === "Koneksi Berhasil!" && (
+                            <p className="mt-4 text-slate-400 text-xs font-bold uppercase tracking-widest">
+                                Database Terhubung. Siap Memasukkan Soal.
+                            </p>
+                        )}
+                    </div>
                 </div>
             );
         }
