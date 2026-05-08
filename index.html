@@ -619,7 +619,7 @@
             };
 
             const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-            const formatDate = (ts) => ts ? ts.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "-";
+            const formatDate = (ts) => ts ? ts.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-";
             const formatReadableDate = (iso) => iso ? new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-";
 
             const availableJudul = [...new Set(results.filter(res => {
@@ -876,6 +876,7 @@
                                                                 <input type="checkbox" className="w-4 h-4 accent-indigo-600 rounded cursor-pointer" checked={filteredResults.length > 0 && selectedResults.length === filteredResults.length} onChange={handleSelectAllResult} />
                                                             </th>
                                                             <th className="px-6 py-4">Siswa</th>
+                                                            <th className="px-6 py-4">Kelas</th>
                                                             <th className="px-6 py-4">Mapel</th>
                                                             <th className="px-6 py-4">Judul Ujian</th>
                                                             <th className="px-6 py-4">Skor</th>
@@ -892,6 +893,7 @@
                                                                         <input type="checkbox" className="w-4 h-4 accent-indigo-600 rounded cursor-pointer" checked={selectedResults.includes(res.id)} onChange={() => handleSelectResult(res.id)} />
                                                                     </td>
                                                                     <td className="px-6 py-4 font-bold text-slate-700">{res.studentName}</td>
+                                                                    <td className="px-6 py-4"><span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">{res.studentClass ? `Kls ${res.studentClass}` : '-'}</span></td>
                                                                     <td className="px-6 py-4"><span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">{mapel}</span></td>
                                                                     <td className="px-6 py-4 text-slate-500">{res.examTitle}</td>
                                                                     <td className="px-6 py-4"><span className={`px-2 py-0.5 rounded-lg font-black text-xs ${res.score >= 70 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{res.score}</span></td>
@@ -1223,15 +1225,16 @@
                                                                         </div>
                                                                         <div 
                                                                             contentEditable="true" 
+                                                                            dir="auto"
                                                                             className="text-sm font-bold text-slate-800 p-3 bg-white border border-indigo-200 rounded-xl outline-none min-h-[80px]" 
                                                                             onBlur={(e) => handleUpdatePreviewQuestion(idx, 'text', e.currentTarget.innerHTML)}
                                                                             dangerouslySetInnerHTML={{ __html: q.text }}
                                                                         ></div>
                                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                                             {q.options.map((opt, oIdx) => (
-                                                                                <div key={oIdx} className={`px-4 py-2.5 rounded-xl border flex items-center gap-3 bg-white ${q.correctAnswer === oIdx ? 'border-emerald-500' : 'border-slate-200'}`}>
-                                                                                    <button onClick={() => handleUpdatePreviewQuestion(idx, 'correctAnswer', oIdx)} className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${q.correctAnswer === oIdx ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white border text-slate-300'}`}>{String.fromCharCode(65 + oIdx)}</button>
-                                                                                    <input className="flex-1 bg-transparent text-xs font-bold outline-none" value={opt} onChange={(e) => handleUpdatePreviewQuestion(idx, 'option', {oIdx: oIdx, val: e.target.value})} />
+                                                                                <div key={oIdx} className={`px-4 py-2 rounded-xl border flex items-stretch gap-3 bg-white ${q.correctAnswer === oIdx ? 'border-emerald-500' : 'border-slate-200'}`}>
+                                                                                    <button onClick={() => handleUpdatePreviewQuestion(idx, 'correctAnswer', oIdx)} className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs self-center flex-shrink-0 ${q.correctAnswer === oIdx ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white border text-slate-300'}`}>{String.fromCharCode(65 + oIdx)}</button>
+                                                                                    <textarea dir="auto" className="flex-1 bg-transparent text-xs font-bold outline-none h-auto min-h-[48px] max-h-32 overflow-y-auto break-words resize-none py-2" value={opt} onChange={(e) => handleUpdatePreviewQuestion(idx, 'option', {oIdx: oIdx, val: e.target.value})} />
                                                                                 </div>
                                                                             ))}
                                                                         </div>
@@ -1241,9 +1244,9 @@
                                                                         <div className="text-sm font-bold text-slate-800 leading-relaxed prose-render prose prose-sm" dangerouslySetInnerHTML={{ __html: q.text }}></div>
                                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                                             {q.options.map((opt, oIdx) => (
-                                                                                <div key={oIdx} className={`px-4 py-2.5 rounded-xl border flex items-center gap-3 ${q.correctAnswer === oIdx ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-transparent text-slate-400'}`}>
-                                                                                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${q.correctAnswer === oIdx ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white border text-slate-300'}`}>{String.fromCharCode(65 + oIdx)}</span>
-                                                                                    <span className="text-xs font-bold truncate">{opt}</span>
+                                                                                <div key={oIdx} className={`px-4 py-2 rounded-xl border flex items-stretch gap-3 ${q.correctAnswer === oIdx ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-transparent text-slate-400'}`}>
+                                                                                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs self-center flex-shrink-0 ${q.correctAnswer === oIdx ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white border text-slate-300'}`}>{String.fromCharCode(65 + oIdx)}</span>
+                                                                                    <span className="text-xs font-bold break-words self-center flex-1 py-2">{opt}</span>
                                                                                 </div>
                                                                             ))}
                                                                         </div>
@@ -1298,7 +1301,7 @@
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Judul Ujian</label>
-                                                            <input type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none font-bold text-sm focus:border-indigo-500 transition-all" value={examToEdit.title} onChange={e => setExamToEdit({...examToEdit, title: e.target.value})} />
+                                                            <input type="text" dir="auto" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none font-bold text-sm focus:border-indigo-500 transition-all" value={examToEdit.title} onChange={e => setExamToEdit({...examToEdit, title: e.target.value})} />
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div className="space-y-2">
@@ -1354,7 +1357,7 @@
                                                         Soal Benar Salah: Pertanyaan | BS | Kunci(0=Benar, 1=Salah) | Poin
                                                     </label>
                                                 </div>
-                                                <textarea className="w-full h-32 bg-white border-2 border-slate-200 rounded-2xl p-4 text-xs font-mono outline-none focus:border-emerald-500" placeholder="Pertanyaan | Opsi1 | Opsi2 | Opsi3 | Opsi4 | 0 | 10&#10;Pertanyaan | BS | 0 | 10" value={importText} onChange={e => setImportText(e.target.value)} />
+                                                <textarea dir="auto" className="w-full h-32 bg-white border-2 border-slate-200 rounded-2xl p-4 text-xs font-mono outline-none focus:border-emerald-500" placeholder="Pertanyaan | Opsi1 | Opsi2 | Opsi3 | Opsi4 | 0 | 10&#10;Pertanyaan | BS | 0 | 10" value={importText} onChange={e => setImportText(e.target.value)} />
                                                 <button onClick={handleImport} className="w-full py-3 bg-emerald-500 text-white font-black rounded-xl text-xs uppercase shadow-md hover:bg-emerald-600 transition-all active:scale-95">Proses Impor</button>
                                             </div>
                                         )}
@@ -1364,8 +1367,8 @@
                                                 <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mapel</label><select className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-600 outline-none font-bold text-sm" value={newExam.category} onChange={e => setNewExam({...newExam, category: e.target.value})}><option value="">Pilih Mapel...</option>{MAPEL_LIST.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
                                                 <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kelas</label><select className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-600 outline-none font-bold text-sm" value={newExam.kelas} onChange={e => setNewExam({...newExam, kelas: e.target.value})}><option value="">Pilih Kelas...</option>{KELAS_LIST.map(k => <option key={k} value={k}>{k}</option>)}</select></div>
                                             </div>
-                                            <div className="grid grid-cols-12 gap-4">
-                                                <div className="col-span-9 space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Judul Ujian</label><input type="text" className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-600 outline-none font-bold text-sm" placeholder="Contoh: UTS Ganjil Aqidah" value={newExam.title} onChange={e => setNewExam({...newExam, title: e.target.value})} /></div>
+                                            <div className="grid grid-cols-12 gap-4 items-end">
+                                                <div className="col-span-9 space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Judul Ujian</label><input type="text" dir="auto" className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-600 outline-none font-bold text-sm" placeholder="Contoh: UTS Ganjil Aqidah" value={newExam.title} onChange={e => setNewExam({...newExam, title: e.target.value})} /></div>
                                                 <div className="col-span-3 space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">Durasi</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-600 outline-none font-bold text-sm text-center" value={newExam.duration} onChange={e => setNewExam({...newExam, duration: e.target.value})} /></div>
                                             </div>
                                         </div>
@@ -1389,7 +1392,7 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div ref={editorRef} contentEditable="true" className="rich-editor w-full text-sm font-medium" onInput={(e) => setPendingQuestion({...pendingQuestion, text: e.currentTarget.innerHTML})}></div>
+                                                    <div ref={editorRef} contentEditable="true" dir="auto" className="rich-editor w-full text-sm font-medium" onInput={(e) => setPendingQuestion({...pendingQuestion, text: e.currentTarget.innerHTML})}></div>
                                                 </div>
 
                                                 <div className="grid grid-cols-12 gap-4 items-center">
@@ -1404,11 +1407,11 @@
                                                 </div>
 
                                                 {pendingQuestion.type === 'mcq' ? (
-                                                    <div className="grid grid-cols-2 gap-3 animate-fade-in">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in items-stretch">
                                                         {pendingQuestion.options.map((opt, oIdx) => (
-                                                            <div key={oIdx} className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-                                                                <input type="radio" className="w-4 h-4 accent-indigo-600" checked={pendingQuestion.correctAnswer === oIdx} onChange={() => setPendingQuestion({...pendingQuestion, correctAnswer: oIdx})} />
-                                                                <input className="flex-1 bg-transparent border-none text-xs font-bold outline-none" placeholder={`Opsi ${String.fromCharCode(65+oIdx)}`} value={opt} onChange={e => { const u = [...pendingQuestion.options]; u[oIdx] = e.target.value; setPendingQuestion({...pendingQuestion, options: u}); }} />
+                                                            <div key={oIdx} className="flex items-stretch gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                                                                <input type="radio" className="w-4 h-4 accent-indigo-600 self-center flex-shrink-0" checked={pendingQuestion.correctAnswer === oIdx} onChange={() => setPendingQuestion({...pendingQuestion, correctAnswer: oIdx})} />
+                                                                <textarea dir="auto" className="flex-1 bg-transparent border-none text-xs font-bold outline-none h-auto min-h-[48px] max-h-32 overflow-y-auto break-words resize-none py-2" placeholder={`Opsi ${String.fromCharCode(65+oIdx)}`} value={opt} onChange={e => { const u = [...pendingQuestion.options]; u[oIdx] = e.target.value; setPendingQuestion({...pendingQuestion, options: u}); }} />
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1462,19 +1465,26 @@
                                                             </div>
 
                                                             {editingId === q.id ? (
-                                                                <div contentEditable="true" className="text-sm font-bold text-slate-800 p-3 bg-slate-50 rounded-xl outline-none" onBlur={(e) => handleUpdateInlineQuestion(q.id, 'text', e.currentTarget.innerHTML)} dangerouslySetInnerHTML={{ __html: q.text }}></div>
+                                                                <div className="space-y-3">
+                                                                    <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl outline-none w-max border border-slate-100">
+                                                                        <label className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Poin Soal</label>
+                                                                        <div className="w-px h-4 bg-slate-200"></div>
+                                                                        <input type="number" className="bg-transparent outline-none font-black text-slate-800 text-sm w-12 text-center" value={q.points} onChange={(e) => handleUpdateInlineQuestion(q.id, 'points', e.target.value)} placeholder="10" />
+                                                                    </div>
+                                                                    <div contentEditable="true" dir="auto" className="text-sm font-bold text-slate-800 p-3 bg-slate-50 rounded-xl outline-none" onBlur={(e) => handleUpdateInlineQuestion(q.id, 'text', e.currentTarget.innerHTML)} dangerouslySetInnerHTML={{ __html: q.text }}></div>
+                                                                </div>
                                                             ) : (
                                                                 <div className="text-sm font-bold text-slate-800 prose-render prose prose-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: q.text }}></div>
                                                             )}
                                                             
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                                 {q.options.map((opt, oIdx) => (
-                                                                    <div key={oIdx} className={`px-4 py-2.5 rounded-xl border flex items-center gap-3 ${q.correctAnswer === oIdx ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 text-slate-400'}`}>
-                                                                        <button disabled={editingId !== q.id} onClick={() => handleUpdateInlineQuestion(q.id, 'correctAnswer', oIdx)} className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${q.correctAnswer === oIdx ? 'bg-emerald-500 text-white' : 'bg-white border'}`}>{String.fromCharCode(65 + oIdx)}</button>
+                                                                    <div key={oIdx} className={`px-4 py-2 rounded-xl border flex items-stretch gap-3 ${q.correctAnswer === oIdx ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 text-slate-400'}`}>
+                                                                        <button disabled={editingId !== q.id} onClick={() => handleUpdateInlineQuestion(q.id, 'correctAnswer', oIdx)} className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs self-center flex-shrink-0 ${q.correctAnswer === oIdx ? 'bg-emerald-500 text-white' : 'bg-white border'}`}>{String.fromCharCode(65 + oIdx)}</button>
                                                                         {editingId === q.id ? (
-                                                                            <input className="flex-1 bg-transparent text-sm font-bold outline-none" value={opt} onChange={(e) => handleUpdateInlineQuestion(q.id, 'option', {idx: oIdx, val: e.target.value})} />
+                                                                            <textarea dir="auto" className="flex-1 bg-transparent text-sm font-bold outline-none h-auto min-h-[48px] max-h-32 overflow-y-auto break-words resize-none py-2" value={opt} onChange={(e) => handleUpdateInlineQuestion(q.id, 'option', {idx: oIdx, val: e.target.value})} />
                                                                         ) : (
-                                                                            <span className="text-sm font-bold truncate">{opt || '-'}</span>
+                                                                            <span className="text-sm font-bold break-words self-center flex-1 py-2">{opt || '-'}</span>
                                                                         )}
                                                                     </div>
                                                                 ))}
